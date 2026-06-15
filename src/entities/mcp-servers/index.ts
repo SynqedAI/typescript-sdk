@@ -1,3 +1,6 @@
-export { MCPServersEntity } from "./mcp-servers";
-
-export type { MCPServer, CreateMCPServerRequest } from "./types";
+export type {
+  MCPServer,
+  CreateMCPServerRequest,
+  ListMCPServersParams,
+  IterateMCPServersParams,
+} from '@/entities/mcp-servers/types';

@@ -1,5 +1,6 @@
+/** Per-request options passed to {@link HttpClient.request}. */
 export interface RequestOptions {
   signal?: AbortSignal;
-  timeout?: number;
+  timeoutMs?: number;
   idempotencyKey?: string;
 }

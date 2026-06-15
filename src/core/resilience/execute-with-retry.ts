@@ -1,56 +1,50 @@
-import { sleep } from "./sleep";
-import { calculateBackoffDelay, type RetryConfig } from "./retry";
+import {
+  calculateRetryDelay,
+  DEFAULT_RETRY_CONFIG,
+  type RetryConfig,
+} from '@/core/resilience/retry-delay';
+import { shouldRetry } from '@/core/resilience/should-retry';
+import { sleep } from '@/core/resilience/sleep';
 
-import { addJitter } from "./jitter";
-import { shouldRetry } from "./should-retry";
-
-const DEFAULT_RETRY_CONFIG: RetryConfig = {
-  retries: 3,
-  baseDelayMs: 500,
-  maxDelayMs: 5000,
-};
-
+/** @internal */
 export async function executeWithRetry<T>(
-  fn: () => Promise<T>,
-
-  options?: {
+  fn: (signal?: AbortSignal) => Promise<T>,
+  options: {
     method?: string;
     hasIdempotencyKey?: boolean;
+    signal?: AbortSignal;
+    retries?: RetryConfig | false;
   },
-
-  config: RetryConfig = DEFAULT_RETRY_CONFIG,
 ): Promise<T> {
+  if (options.retries === false) {
+    return fn(options.signal);
+  }
+
+  const config: Required<RetryConfig> = {
+    ...DEFAULT_RETRY_CONFIG,
+    ...options.retries,
+  };
+
   let lastError: unknown;
 
-  for (let attempt = 0; attempt <= config.retries; attempt++) {
+  for (let attempt = 0; attempt <= config.maxAttempts; attempt++) {
     try {
-      return await fn();
+      return await fn(options.signal);
     } catch (error) {
       lastError = error;
 
       const retryable = shouldRetry(
         error,
-
-        options?.method,
-
-        options?.hasIdempotencyKey,
+        options.method,
+        options.hasIdempotencyKey,
       );
 
-      // do not retry unsafe errors
-      if (!retryable) {
+      if (!retryable || attempt === config.maxAttempts) {
         throw error;
       }
 
-      // max retries reached
-      if (attempt === config.retries) {
-        break;
-      }
-
-      const delay = addJitter(
-        calculateBackoffDelay(attempt, config.baseDelayMs, config.maxDelayMs),
-      );
-
-      await sleep(delay);
+      const delay = calculateRetryDelay(attempt, config);
+      await sleep(delay, options.signal);
     }
   }
 

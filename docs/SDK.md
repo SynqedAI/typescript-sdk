@@ -31,7 +31,7 @@ The SynqedAI TypeScript SDK is a **zero-runtime-dependency** client library. It 
 User App
    │
    ▼
-SynqedAIClient          ← config, auth, shared HTTP engine
+SynqedClient          ← config, auth, shared HTTP engine
    │
    ├── mcpServers       ← API entity (more entities added over time)
    │       │
@@ -39,15 +39,15 @@ SynqedAIClient          ← config, auth, shared HTTP engine
    └── HttpClient       ← fetch, headers, retry, middleware, errors
            │
            ▼
-       SynqedAI REST API (https://synqedai.com/api/v1)
+       SynqedAI REST API (https://api.synqed.ai)
 ```
 
 **Public API today:**
 
 ```ts
-import { SynqedAIClient } from '@synqedai/typescript';
+import { SynqedClient } from '@synqedai/typescript';
 
-const client = new SynqedAIClient({ apiKey: 'sk_...' });
+const client = new SynqedClient({ apiKey: 'sk_...' });
 const servers = await client.mcpServers.list({ limit: 10 });
 ```
 
@@ -119,8 +119,8 @@ src/
 ├── version.ts                        # SDK version string ('0.1.0')
 │
 ├── client/                           # PUBLIC: main client
-│   ├── SynqedClient.ts               # SynqedAIClient class
-│   ├── types.ts                      # SynqedAIClientConfig
+│   ├── SynqedClient.ts               # SynqedClient class
+│   ├── types.ts                      # SynqedClientConfig
 │   └── index.ts
 │
 ├── entities/                         # PUBLIC (via client): API endpoints
@@ -156,10 +156,10 @@ src/
 User
   │
   ▼
-src/index.ts                    export { SynqedAIClient }
+src/index.ts                    export { SynqedClient }
   │
   ▼
-SynqedAIClient                  resolve config, create HttpClient, wire entities
+SynqedClient                  resolve config, create HttpClient, wire entities
   │
   ▼
 MCPServersEntity              build path/body, call http.request<T>()
@@ -195,7 +195,7 @@ executeWithRetry()              retry loop with backoff on safe failures
 ## Client Initialization
 
 ```ts
-const client = new SynqedAIClient({
+const client = new SynqedClient({
   apiKey: 'sk_...',       // or SYNQEDAI_API_KEY env var
   baseURL: 'https://...',  // or SYNQEDAI_BASE_URL env var
   timeout: 30_000,         // default: 30 seconds
@@ -208,12 +208,12 @@ const client = new SynqedAIClient({
 **Constructor flow:**
 
 1. `getEnv('SYNQEDAI_API_KEY')` — fallback for `apiKey`
-2. `getEnv('SYNQEDAI_BASE_URL')` — fallback for `baseURL` (default: `https://synqedai.com/api/v1`)
+2. `getEnv('SYNQEDAI_BASE_URL')` — reads from `.env` or process env (see `.env.example`)
 3. Merge user middleware + auto-attach `createDebugMiddleware()` if `debug: true`
 4. `new HttpClient({ apiKey, baseURL, timeout, dryRun, middlewares })`
 5. `new MCPServersEntity(http)` → exposed as `client.mcpServers`
 
-**`SynqedAIClient` properties:**
+**`SynqedClient` properties:**
 
 | Property | Type | Source | Purpose |
 |----------|------|--------|---------|
@@ -235,7 +235,7 @@ const client = new SynqedAIClient({
 request(path, init, options)
 │
 ├── 1. Resolve URL
-│      new URL(path, baseURL) → "https://synqedai.com/api/v1/mcp-servers"
+│      new URL(path, baseURL) → "https://api.synqed.ai/mcp-servers"
 │
 ├── 2. Wrap in executeWithRetry()
 │      │
@@ -427,7 +427,7 @@ onRequest  (all middleware, in order)
 
 Auto-attached when `debug: true`. Logs requests, responses, and errors. Redacts sensitive headers (`authorization`, `x-api-key`, `cookie`).
 
-Custom middleware can be passed via `SynqedAIClientConfig.middlewares` for logging, tracing, metrics, etc.
+Custom middleware can be passed via `SynqedClientConfig.middlewares` for logging, tracing, metrics, etc.
 
 ---
 
@@ -437,8 +437,8 @@ Custom middleware can be passed via `SynqedAIClientConfig.middlewares` for loggi
 
 | Export | File | Type |
 |--------|------|------|
-| `SynqedAIClient` | `client/SynqedClient.ts` | Class |
-| `SynqedAIClientConfig` | `client/types.ts` | Interface |
+| `SynqedClient` | `client/SynqedClient.ts` | Class |
+| `SynqedClientConfig` | `client/types.ts` | Interface |
 
 ### `MCPServersEntity` methods
 
@@ -529,10 +529,10 @@ src/*.ts  →  npm run build (tsup)  →  dist/
 
 ```ts
 // ESM (Node 18+, Vite, Next.js, etc.)
-import { SynqedAIClient } from '@synqedai/typescript';
+import { SynqedClient } from '@synqedai/typescript';
 
 // CommonJS (older Node)
-const { SynqedAIClient } = require('@synqedai/typescript');
+const { SynqedClient } = require('@synqedai/typescript');
 ```
 
 ### Release pipeline
@@ -576,7 +576,7 @@ See [versioning.md](./versioning.md) for the full versioning policy.
 USER CODE
     │
     ▼
-SynqedAIClient
+SynqedClient
     │
     ├── http: HttpClient
     │       └── request(path, init, options)
@@ -604,10 +604,10 @@ SynqedAIClient
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `SYNQEDAI_API_KEY` | API authentication | — |
-| `SYNQEDAI_BASE_URL` | API base URL | `https://synqedai.com/api/v1` |
+| `SYNQEDAI_BASE_URL` | API base URL | Set in `.env` (see `.env.example`) |
 
 ### Adding a new entity
 
 1. Create `src/entities/{name}/` with `types.ts`, `{name}.ts`, `index.ts`
-2. Add `readonly {name}: {Name}Entity` to `SynqedAIClient`
+2. Add `readonly {name}: {Name}Entity` to `SynqedClient`
 3. Instantiate in constructor: `new {Name}Entity(this.http)`

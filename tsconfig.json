@@ -11,9 +11,11 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
     "types": ["node"],
+    "baseUrl": ".",
     "paths": {
-      "@src/*": ["./src/*"]
+      "@/*": ["src/*"]
     },
     "outDir": "dist"
   },

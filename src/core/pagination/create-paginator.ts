@@ -1,21 +1,37 @@
-import type { PaginatedResponse } from "./types";
+import type { PaginatedResponse } from '@/core/pagination/types';
 
-export async function* createPaginator<T>(
-  fetchPage: (cursor?: string) => Promise<PaginatedResponse<T>>,
-) {
-  let cursor: string | undefined;
+export interface CreatePaginatorOptions<T> {
+  fetchPage: (page: number) => Promise<PaginatedResponse<T>>;
+  initialPage?: number;
+  maxPages?: number;
+}
 
-  while (true) {
-    const page = await fetchPage(cursor);
+/** @internal */
+export async function* createPaginator<T>({
+  fetchPage,
+  initialPage = 1,
+  maxPages = 10_000,
+}: CreatePaginatorOptions<T>): AsyncGenerator<T> {
+  let page: number | null = initialPage;
+  const seenPages = new Set<number>();
 
-    for (const item of page.data) {
+  while (page !== null) {
+    if (seenPages.has(page)) {
+      throw new Error(`Pagination loop detected at page ${page}`);
+    }
+
+    if (seenPages.size >= maxPages) {
+      throw new Error(`Pagination exceeded max page limit of ${maxPages}`);
+    }
+
+    seenPages.add(page);
+
+    const response = await fetchPage(page);
+
+    for (const item of response.data) {
       yield item;
     }
 
-    if (!page.pageInfo.hasMore) {
-      break;
-    }
-
-    cursor = page.pageInfo.nextCursor;
+    page = response.next_page;
   }
 }

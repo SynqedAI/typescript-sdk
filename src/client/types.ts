@@ -1,7 +1,14 @@
-export interface SynqedAIClientConfig {
+import type { RetryConfig } from '@/core/resilience/retry-delay';
+
+/**
+ * Configuration options for {@link SynqedClient}.
+ */
+export interface SynqedClientConfig {
   apiKey?: string;
-  baseURL?: string;
-  timeout?: number;
+  baseUrl?: string;
+  timeoutMs?: number;
   debug?: boolean;
-  dryRun?: boolean;
+  retries?: RetryConfig | false;
 }
+
+export type { RetryConfig };

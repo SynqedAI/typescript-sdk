@@ -1,1 +1,1 @@
-export type { ProgressCallback, PollingCallback } from './callbacks';
+export type { ProgressCallback, PollingCallback } from '@/core/types/callbacks';

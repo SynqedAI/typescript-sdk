@@ -1,5 +1,9 @@
-import { VERSION } from '@src/version';
+import { CLIENT_NAME, VERSION } from '@/version';
 
-export function createUserAgent(): string {
-  return `synqedai-typescript/${VERSION}`;
+/** @internal */
+export function getSdkHeaders(): Record<string, string> {
+  return {
+    'X-SynqedAI-Client': CLIENT_NAME,
+    'X-SynqedAI-Version': VERSION,
+  };
 }

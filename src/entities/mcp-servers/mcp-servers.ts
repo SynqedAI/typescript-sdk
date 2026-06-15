@@ -1,60 +1,103 @@
-import type { HttpClient } from "../../core/http/httpClient";
-import { createPaginator } from "../../core/pagination";
-import type { PaginatedResponse } from "../../core/pagination";
-import { removeUndefined } from "../../core/utils";
+import type { RequestOptions } from '@/core/http/request';
+import { HttpClient } from '@/core/http/http-client';
+import {
+  collectPaginator,
+  createPaginator,
+  type PaginatedResponse,
+} from '@/core/pagination';
+import { buildQueryString } from '@/core/utils/build-query-string';
 import type {
-  MCPServer,
   CreateMCPServerRequest,
+  IterateMCPServersParams,
   ListMCPServersParams,
-} from "./types";
+  MCPServer,
+} from '@/entities/mcp-servers/types';
 
-
+/** @internal */
 export class MCPServersEntity {
-  constructor(private readonly http: HttpClient) {}
+  constructor(
+    private readonly http: HttpClient,
+    private readonly defaultTimeoutMs: number,
+  ) {}
 
-  list(params: ListMCPServersParams = {}) {
-    const searchParams = new URLSearchParams(
-      removeUndefined({
-        limit: params.limit?.toString(),
-        cursor: params.cursor,
-      }) as Record<string, string>,
-    );
-    const query = searchParams.toString();
+  /**
+   * Lists MCP servers for a single page.
+   */
+  list(
+    params: ListMCPServersParams = {},
+    options: RequestOptions = {},
+  ): Promise<PaginatedResponse<MCPServer>> {
+    const query = buildQueryString({
+      page: params.page,
+      page_size: params.page_size,
+    });
 
     return this.http.request<PaginatedResponse<MCPServer>>(
-      `/mcp-servers${query ? `?${query}` : ""}`,
+      `/mcp-servers${query}`,
+      { method: 'GET' },
       {
-        method: "GET",
+        timeoutMs: options.timeoutMs ?? this.defaultTimeoutMs,
+        signal: options.signal,
       },
     );
   }
 
-  listAll() {
-    return createPaginator((cursor) =>
-      this.list({
-        cursor,
-      }),
+  /**
+   * Lazily iterates MCP servers across all pages.
+   */
+  iterate(params: IterateMCPServersParams = {}): AsyncGenerator<MCPServer> {
+    const { initialPage = 1, maxPages, ...listParams } = params;
+
+    return createPaginator({
+      fetchPage: (page) => this.list({ ...listParams, page }),
+      initialPage,
+      maxPages,
+    });
+  }
+
+  /**
+   * Fetches all MCP servers across every page.
+   */
+  listAll(params: IterateMCPServersParams = {}): Promise<MCPServer[]> {
+    return collectPaginator(this.iterate(params));
+  }
+
+  /**
+   * Retrieves a single MCP server by ID.
+   */
+  retrieve(id: string, options: RequestOptions = {}): Promise<MCPServer> {
+    return this.http.request<MCPServer>(
+      `/mcp-servers/${encodeURIComponent(id)}`,
+      { method: 'GET' },
+      options,
     );
   }
 
-  retrieve(id: string) {
-    return this.http.request<MCPServer>(`/mcp-servers/${id}`, {
-      method: "GET",
-    });
+  /**
+   * Creates a new MCP server.
+   */
+  create(
+    body: CreateMCPServerRequest,
+    options: RequestOptions = {},
+  ): Promise<MCPServer> {
+    return this.http.request<MCPServer>(
+      '/mcp-servers',
+      {
+        method: 'POST',
+        body: JSON.stringify(body),
+      },
+      options,
+    );
   }
 
-
-  create(body: CreateMCPServerRequest) {
-    return this.http.request<MCPServer>("/mcp-servers", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-  }
-
-
-  delete(id: string) {
-    return this.http.request<void>(`/mcp-servers/${id}`, {
-      method: "DELETE",
-    });
+  /**
+   * Deletes an MCP server by ID.
+   */
+  delete(id: string, options: RequestOptions = {}): Promise<void> {
+    return this.http.request<void>(
+      `/mcp-servers/${encodeURIComponent(id)}`,
+      { method: 'DELETE' },
+      options,
+    );
   }
 }

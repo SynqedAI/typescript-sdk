@@ -10,6 +10,7 @@ import type { RequestOptions } from '@/core/http/request';
 import { parseResponse } from '@/core/http/response';
 import { executeWithRetry } from '@/core/resilience/execute-with-retry';
 import type { RetryConfig } from '@/core/resilience/retry-delay';
+import { joinUrl } from '@/core/utils/join-url';
 
 export interface HttpClientConfig {
   apiKey?: string;
@@ -28,7 +29,7 @@ export class HttpClient {
     init: RequestInit = {},
     options: RequestOptions = {},
   ): Promise<T> {
-    const url = new URL(path, this.config.baseUrl).toString();
+    const url = joinUrl(this.config.baseUrl, path);
     const timeoutMs = options.timeoutMs ?? this.config.timeoutMs;
     const signal =
       timeoutMs !== undefined
@@ -45,6 +46,7 @@ export class HttpClient {
             ...buildHeaders({
               apiKey: this.config.apiKey,
               idempotencyKey: options.idempotencyKey,
+              requestId: options.requestId,
               hasBody,
             }),
             ...init.headers,
@@ -72,6 +74,7 @@ export class HttpClient {
             logDebugResponse(response);
           }
 
+          // Success responses may be JSON, plain text, or empty (204/205/empty body).
           return parseResponse<T>(response);
         } catch (error) {
           if (!(error instanceof SynqedError)) {
@@ -80,7 +83,7 @@ export class HttpClient {
             }
 
             if (error instanceof TypeError) {
-              throw new NetworkError(error.message);
+              throw new NetworkError({ message: error.message });
             }
           }
 

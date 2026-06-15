@@ -1,12 +1,17 @@
-import { SynqedError } from '@/core/errors/synqed-error';
+import {
+  SynqedError,
+  type SynqedErrorCode,
+  type SynqedErrorDetail,
+} from '@/core/errors/synqed-error';
 
 export class SynqedAPIError extends SynqedError {
   constructor(params: {
     message: string;
     status: number;
-    code?: string;
+    code?: SynqedErrorCode;
     requestId?: string;
     retryable?: boolean;
+    details?: SynqedErrorDetail[];
   }) {
     super({
       type: 'api_error',

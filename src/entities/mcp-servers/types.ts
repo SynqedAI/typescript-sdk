@@ -4,14 +4,15 @@ import type { PaginationParams } from '@/core/pagination/types';
 export interface MCPServer {
   id: string;
   name: string;
-  transport: string;
-  createdAt: string;
+  transport?: string;
+  created_at?: string;
 }
 
-/** Request body for creating an MCP server. */
-export interface CreateMCPServerRequest {
+/** MCP tool exposed by an MCP server. */
+export interface MCPTool {
   name: string;
-  transport: string;
+  description?: string | null;
+  input_schema?: Record<string, unknown>;
 }
 
 /** Query parameters for listing MCP servers. */

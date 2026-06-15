@@ -1,28 +1,47 @@
 import { vi } from 'vitest';
 import type { PaginatedResponse } from '@/core/pagination/types';
 import type { MCPServer } from '@/entities/mcp-servers/types';
+import type { Session } from '@/entities/sessions/types';
 
 export function createMcpServer(id: string, name: string): MCPServer {
   return {
     id,
     name,
     transport: 'stdio',
-    createdAt: '2026-01-01T00:00:00Z',
+    created_at: '2026-01-01T00:00:00Z',
   };
 }
 
-export function createPaginatedResponse(
-  data: MCPServer[],
-  overrides: Partial<PaginatedResponse<MCPServer>> = {},
-): PaginatedResponse<MCPServer> {
+export function createPaginatedResponse<T>(
+  data: T[],
+  paginationOverrides: Partial<PaginatedResponse<T>['pagination']> = {},
+): PaginatedResponse<T> {
   return {
     data,
-    current_page: 1,
-    next_page: null,
-    page_size: 25,
-    prev_page: null,
-    total_pages: 1,
-    total_records: data.length,
+    pagination: {
+      current_page: 1,
+      next_page: null,
+      page_size: 20,
+      prev_page: null,
+      total_pages: 1,
+      total_records: data.length,
+      ...paginationOverrides,
+    },
+  };
+}
+
+export function createSession(overrides: Partial<Session> = {}): Session {
+  return {
+    id: 'sess_123',
+    user_id: 'user_12345',
+    gateway_id: 'gw_abc123',
+    status: 'active',
+    mcp: {
+      url: 'https://mcp.synqed.ai/sess_123',
+      headers: { Authorization: 'Bearer token' },
+    },
+    connections: [],
+    created_at: '2026-01-01T00:00:00Z',
     ...overrides,
   };
 }
@@ -37,6 +56,26 @@ export function jsonResponse(
       'content-type': 'application/json',
       ...(init.headers ?? {}),
     },
+  });
+}
+
+export function textResponse(
+  body: string,
+  init: ResponseInit = { status: 200 },
+): Response {
+  return new Response(body, {
+    ...init,
+    headers: {
+      'content-type': 'text/plain',
+      ...(init.headers ?? {}),
+    },
+  });
+}
+
+export function emptyBodyResponse(init: ResponseInit = { status: 200 }): Response {
+  return new Response('', {
+    ...init,
+    headers: init.headers ?? {},
   });
 }
 
@@ -67,4 +106,8 @@ export function stubFetch(
   const mock = createMockFetch(handler);
   vi.stubGlobal('fetch', mock);
   return mock;
+}
+
+export function getRequestHeaders(init?: RequestInit): Headers {
+  return new Headers(init?.headers);
 }

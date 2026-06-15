@@ -1,4 +1,12 @@
 /**
+ * Envelope for single-resource API responses.
+ * Entity methods request `ApiResponse<T>`, then return the unwrapped `data` field.
+ */
+export interface ApiResponse<T> {
+  data: T;
+}
+
+/**
  * Optional pagination query parameters.
  */
 export interface PaginationParams {
@@ -20,7 +28,9 @@ export interface PageInfo {
 
 /**
  * Paginated list response from the SynqedAI API.
+ * List entity methods return this shape directly without unwrapping.
  */
-export interface PaginatedResponse<T> extends PageInfo {
+export interface PaginatedResponse<T> {
   data: T[];
+  pagination: PageInfo;
 }

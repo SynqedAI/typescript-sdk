@@ -4,12 +4,14 @@ import { getSdkHeaders } from '@/core/runtime/user-agent';
 export function buildHeaders(options: {
   apiKey?: string;
   idempotencyKey?: string;
+  requestId?: string;
   hasBody: boolean;
 }): HeadersInit {
   return {
     ...getSdkHeaders(),
     ...(options.hasBody ? { 'Content-Type': 'application/json' } : {}),
-    ...(options.apiKey ? { Authorization: `Bearer ${options.apiKey}` } : {}),
+    ...(options.apiKey ? { 'X-API-Key': options.apiKey } : {}),
+    ...(options.requestId ? { 'X-Request-ID': options.requestId } : {}),
     ...(options.idempotencyKey
       ? { 'Idempotency-Key': options.idempotencyKey }
       : {}),

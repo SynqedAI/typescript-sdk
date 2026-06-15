@@ -1,6 +1,6 @@
 export type {
   MCPServer,
-  CreateMCPServerRequest,
+  MCPTool,
   ListMCPServersParams,
   IterateMCPServersParams,
 } from '@/entities/mcp-servers/types';

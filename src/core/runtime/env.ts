@@ -14,7 +14,7 @@ export const ENV_API_KEY = 'SYNQEDAI_API_KEY';
 export const ENV_BASE_URL = 'SYNQEDAI_BASE_URL';
 
 /** @internal */
-export const DEFAULT_BASE_URL = 'https://api.synqed.ai';
+export const DEFAULT_BASE_URL = 'https://api.synqed.ai/v1';
 
 /** @internal */
 export const DEFAULT_TIMEOUT_MS = 30_000;

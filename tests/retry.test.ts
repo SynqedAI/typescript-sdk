@@ -3,6 +3,8 @@ import { SynqedClient } from '@/client/synqed-client';
 import {
   createMcpServer,
   createPaginatedResponse,
+  createSession,
+  getRequestHeaders,
   jsonResponse,
   stubFetch,
 } from './helpers/mock-fetch';
@@ -19,14 +21,16 @@ describe('retry', () => {
       attempts += 1;
 
       if (attempts < 3) {
-        return jsonResponse({ message: 'Server error' }, { status: 503 });
+        return jsonResponse(
+          { error: { code: 'internal_error', message: 'Server error' } },
+          { status: 503 },
+        );
       }
 
       return jsonResponse(createPaginatedResponse([createMcpServer('1', 'A')]));
     });
 
     const client = new SynqedClient({
-      baseUrl: 'https://api.synqed.ai',
       retries: { maxAttempts: 3, baseDelayMs: 1, maxDelayMs: 1 },
     });
 
@@ -35,42 +39,82 @@ describe('retry', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  it('does not retry unsafe POST without idempotency key', async () => {
+  it('does not retry POST without idempotencyKey', async () => {
     const fetchMock = stubFetch((_url, init) => {
       expect(init?.method).toBe('POST');
-      return jsonResponse({ message: 'Server error' }, { status: 503 });
+      return jsonResponse(
+        { error: { code: 'internal_error', message: 'Server error' } },
+        { status: 503 },
+      );
     });
 
     const client = new SynqedClient({
-      baseUrl: 'https://api.synqed.ai',
       retries: { maxAttempts: 3, baseDelayMs: 1, maxDelayMs: 1 },
     });
 
     await expect(
-      client.mcpServers.create({ name: 'Test', transport: 'stdio' }),
+      client.sessions.create({
+        user_id: 'user_12345',
+        gateway: { exposure_mode: 'dynamic' },
+      }),
     ).rejects.toThrow('Server error');
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('retries POST with idempotencyKey', async () => {
+    let attempts = 0;
+    const fetchMock = stubFetch((_url, init) => {
+      attempts += 1;
+      expect(init?.method).toBe('POST');
+
+      if (attempts < 2) {
+        return jsonResponse(
+          { error: { code: 'internal_error', message: 'Server error' } },
+          { status: 503 },
+        );
+      }
+
+      return jsonResponse({ data: createSession() });
+    });
+
+    const client = new SynqedClient({
+      retries: { maxAttempts: 3, baseDelayMs: 1, maxDelayMs: 1 },
+    });
+
+    const session = await client.sessions.create(
+      {
+        user_id: 'user_12345',
+        gateway: { exposure_mode: 'dynamic' },
+      },
+      { idempotencyKey: 'session-user-12345' },
+    );
+
+    expect(session.id).toBe('sess_123');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry when AbortSignal is triggered', async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    const fetchMock = stubFetch(() =>
+      jsonResponse(createPaginatedResponse([createMcpServer('1', 'A')])),
+    );
+
+    const client = new SynqedClient({
+      retries: { maxAttempts: 3, baseDelayMs: 1, maxDelayMs: 1 },
+    });
+
+    await expect(
+      client.mcpServers.list({}, { signal: controller.signal }),
+    ).rejects.toMatchObject({ name: 'AbortError' });
 
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 });
 
 describe('timeout and abort', () => {
-  it('aborts when AbortSignal is triggered', async () => {
-    const controller = new AbortController();
-    controller.abort();
-
-    stubFetch(() => jsonResponse({ data: [] }));
-
-    const client = new SynqedClient({
-      baseUrl: 'https://api.synqed.ai',
-      retries: false,
-    });
-
-    await expect(
-      client.mcpServers.list({}, { signal: controller.signal }),
-    ).rejects.toMatchObject({ name: 'AbortError' });
-  });
-
   it('times out long-running requests', async () => {
     vi.useFakeTimers();
 
@@ -83,7 +127,6 @@ describe('timeout and abort', () => {
     );
 
     const client = new SynqedClient({
-      baseUrl: 'https://api.synqed.ai',
       timeoutMs: 50,
       retries: false,
     });
@@ -95,5 +138,62 @@ describe('timeout and abort', () => {
 
     await vi.advanceTimersByTimeAsync(60);
     await assertion;
+  });
+});
+
+describe('SessionsEntity', () => {
+  it('create() calls POST /sessions', async () => {
+    stubFetch((url, init) => {
+      expect(url).toBe('https://api.synqed.ai/v1/sessions');
+      expect(init?.method).toBe('POST');
+      return jsonResponse({ data: createSession() });
+    });
+
+    const client = new SynqedClient({ retries: false });
+    const session = await client.sessions.create({
+      user_id: 'user_12345',
+      gateway: {
+        name: 'My App Gateway',
+        exposure_mode: 'dynamic',
+        include_all_servers: true,
+      },
+    });
+
+    expect(session.mcp.url).toBe('https://mcp.synqed.ai/sess_123');
+  });
+
+  it('create() sends Idempotency-Key', async () => {
+    stubFetch((_url, init) => {
+      const headers = getRequestHeaders(init);
+      expect(headers.get('Idempotency-Key')).toBe('session-user-12345');
+      return jsonResponse({ data: createSession() });
+    });
+
+    const client = new SynqedClient({ retries: false });
+
+    await client.sessions.create(
+      {
+        user_id: 'user_12345',
+        gateway: { exposure_mode: 'dynamic' },
+      },
+      { idempotencyKey: 'session-user-12345' },
+    );
+  });
+
+  it('create() unwraps ApiResponse.data', async () => {
+    stubFetch(() =>
+      jsonResponse({
+        data: createSession({ id: 'sess_unwrapped', user_id: 'user_999' }),
+      }),
+    );
+
+    const client = new SynqedClient({ retries: false });
+    const session = await client.sessions.create({
+      user_id: 'user_999',
+      gateway: { exposure_mode: 'dynamic' },
+    });
+
+    expect(session.id).toBe('sess_unwrapped');
+    expect(session.user_id).toBe('user_999');
   });
 });

@@ -32,6 +32,7 @@ export async function* createPaginator<T>({
       yield item;
     }
 
-    page = response.next_page;
+    // List responses nest pagination metadata under `pagination`, not at the top level.
+    page = response.pagination.next_page;
   }
 }

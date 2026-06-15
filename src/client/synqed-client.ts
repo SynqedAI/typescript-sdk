@@ -1,14 +1,14 @@
-import type { SynqedClientConfig } from "@/client/types";
-import { HttpClient } from "@/core/http/http-client";
+import type { SynqedClientConfig } from '@/client/types';
+import { HttpClient } from '@/core/http/http-client';
 import {
   DEFAULT_BASE_URL,
   DEFAULT_TIMEOUT_MS,
   ENV_API_KEY,
   ENV_BASE_URL,
   getEnv,
-} from "@/core/runtime/env";
-import { MCPServersEntity } from "@/entities/mcp-servers/mcp-servers";
-
+} from '@/core/runtime/env';
+import { MCPServersEntity } from '@/entities/mcp-servers/mcp-servers';
+import { SessionsEntity } from '@/entities/sessions/sessions';
 
 export class SynqedClient {
   readonly apiKey?: string;
@@ -16,6 +16,7 @@ export class SynqedClient {
   readonly timeoutMs: number;
   readonly debug: boolean;
   readonly mcpServers: MCPServersEntity;
+  readonly sessions: SessionsEntity;
   private readonly http: HttpClient;
 
   constructor(config: SynqedClientConfig = {}) {
@@ -33,6 +34,7 @@ export class SynqedClient {
     });
 
     this.mcpServers = new MCPServersEntity(this.http, this.timeoutMs);
+    this.sessions = new SessionsEntity(this.http, this.timeoutMs);
   }
 }
 

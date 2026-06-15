@@ -1,5 +1,6 @@
 import type { RequestOptions } from '@/core/http/request';
 import { HttpClient } from '@/core/http/http-client';
+import type { ApiResponse } from '@/core/pagination/types';
 import {
   collectPaginator,
   createPaginator,
@@ -7,11 +8,12 @@ import {
 } from '@/core/pagination';
 import { buildQueryString } from '@/core/utils/build-query-string';
 import type {
-  CreateMCPServerRequest,
   IterateMCPServersParams,
   ListMCPServersParams,
   MCPServer,
+  MCPTool,
 } from '@/entities/mcp-servers/types';
+import type { PaginationParams } from '@/core/pagination/types';
 
 /** @internal */
 export class MCPServersEntity {
@@ -20,8 +22,16 @@ export class MCPServersEntity {
     private readonly defaultTimeoutMs: number,
   ) {}
 
+  private resolveOptions(options: RequestOptions = {}): RequestOptions {
+    return {
+      ...options,
+      timeoutMs: options.timeoutMs ?? this.defaultTimeoutMs,
+    };
+  }
+
   /**
    * Lists MCP servers for a single page.
+   * Returns the full {@link PaginatedResponse} (`{ data, pagination }`).
    */
   list(
     params: ListMCPServersParams = {},
@@ -35,10 +45,7 @@ export class MCPServersEntity {
     return this.http.request<PaginatedResponse<MCPServer>>(
       `/mcp-servers${query}`,
       { method: 'GET' },
-      {
-        timeoutMs: options.timeoutMs ?? this.defaultTimeoutMs,
-        signal: options.signal,
-      },
+      this.resolveOptions(options),
     );
   }
 
@@ -64,40 +71,36 @@ export class MCPServersEntity {
 
   /**
    * Retrieves a single MCP server by ID.
+   * Unwraps {@link ApiResponse} and returns the inner resource.
    */
-  retrieve(id: string, options: RequestOptions = {}): Promise<MCPServer> {
-    return this.http.request<MCPServer>(
+  async retrieve(id: string, options: RequestOptions = {}): Promise<MCPServer> {
+    const response = await this.http.request<ApiResponse<MCPServer>>(
       `/mcp-servers/${encodeURIComponent(id)}`,
       { method: 'GET' },
-      options,
+      this.resolveOptions(options),
     );
+
+    return response.data;
   }
 
   /**
-   * Creates a new MCP server.
+   * Lists tools exposed by an MCP server.
+   * Returns the full {@link PaginatedResponse} (`{ data, pagination }`).
    */
-  create(
-    body: CreateMCPServerRequest,
+  listTools(
+    id: string,
+    params: PaginationParams = {},
     options: RequestOptions = {},
-  ): Promise<MCPServer> {
-    return this.http.request<MCPServer>(
-      '/mcp-servers',
-      {
-        method: 'POST',
-        body: JSON.stringify(body),
-      },
-      options,
-    );
-  }
+  ): Promise<PaginatedResponse<MCPTool>> {
+    const query = buildQueryString({
+      page: params.page,
+      page_size: params.page_size,
+    });
 
-  /**
-   * Deletes an MCP server by ID.
-   */
-  delete(id: string, options: RequestOptions = {}): Promise<void> {
-    return this.http.request<void>(
-      `/mcp-servers/${encodeURIComponent(id)}`,
-      { method: 'DELETE' },
-      options,
+    return this.http.request<PaginatedResponse<MCPTool>>(
+      `/mcp-servers/${encodeURIComponent(id)}/tools${query}`,
+      { method: 'GET' },
+      this.resolveOptions(options),
     );
   }
 }

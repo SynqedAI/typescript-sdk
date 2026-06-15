@@ -19,7 +19,7 @@ Set environment variables in your app (the SDK reads `process.env` but does not 
 
 ```bash
 export SYNQEDAI_API_KEY=your_api_key
-export SYNQEDAI_BASE_URL=https://api.synqed.ai
+export SYNQEDAI_BASE_URL=https://api.synqed.ai/v1
 ```
 
 ```typescript
@@ -27,25 +27,46 @@ import { SynqedClient } from '@synqedai/typescript';
 
 const client = new SynqedClient({
   apiKey: process.env.SYNQEDAI_API_KEY,
-  debug: true,
 });
+```
 
-// Single page
-const page = await client.mcpServers.list({
+## Create a session
+
+The recommended integration path is `POST /sessions`:
+
+```typescript
+const session = await client.sessions.create(
+  {
+    user_id: 'user_12345',
+    gateway: {
+      name: 'My App Gateway',
+      exposure_mode: 'dynamic',
+      include_all_servers: true,
+    },
+  },
+  {
+    idempotencyKey: 'session-user-12345',
+    requestId: 'req_123',
+  },
+);
+
+console.log(session.mcp.url);
+```
+
+## Discover MCP servers
+
+```typescript
+const servers = await client.mcpServers.list({
   page: 1,
-  page_size: 25,
+  page_size: 20,
 });
 
-console.log(page.data);
-console.log(page.total_records);
-
-// Stream all pages
 for await (const server of client.mcpServers.iterate()) {
   console.log(server.name);
 }
 
-// Fetch all into memory
-const allServers = await client.mcpServers.listAll();
+const server = await client.mcpServers.retrieve('gw_abc123');
+const tools = await client.mcpServers.listTools('gw_abc123', { page: 1 });
 ```
 
 ### CommonJS
@@ -59,39 +80,57 @@ const { SynqedClient } = require('@synqedai/typescript');
 ```typescript
 interface SynqedClientConfig {
   apiKey?: string;       // or SYNQEDAI_API_KEY
-  baseUrl?: string;      // or SYNQEDAI_BASE_URL (default: https://api.synqed.ai)
+  baseUrl?: string;      // or SYNQEDAI_BASE_URL (default: https://api.synqed.ai/v1)
   timeoutMs?: number;    // default: 30000
   debug?: boolean;       // log requests/responses to console
-  retries?: RetryConfig | false;  // default: retry enabled
+  retries?: RetryConfig | false;     // default: retry enabled
 }
 ```
 
 Config priority: **constructor options → environment variables → defaults**.
 
+Per-request options (`RequestOptions`):
+
+```typescript
+{
+  signal?: AbortSignal;
+  timeoutMs?: number;
+  idempotencyKey?: string;  // sends Idempotency-Key header
+  requestId?: string;        // sends X-Request-ID header
+}
+```
+
 ## MCP Servers
 
 | Method | Description |
 |--------|-------------|
-| `list(params?)` | Fetch a single page |
+| `list(params?, options?)` | Fetch a single page |
 | `iterate(params?)` | Async generator over all pages |
 | `listAll(params?)` | Fetch all records into an array |
-| `retrieve(id)` | Get one MCP server |
-| `create(body, options?)` | Create an MCP server |
-| `delete(id, options?)` | Delete an MCP server |
+| `retrieve(id, options?)` | Get one MCP server |
+| `listTools(id, params?, options?)` | List tools for an MCP server |
 
 ### Pagination response
 
 ```typescript
 interface PaginatedResponse<T> {
   data: T[];
-  current_page: number;
-  next_page: number | null;
-  page_size: number;
-  prev_page: number | null;
-  total_pages: number;
-  total_records: number;
+  pagination: {
+    current_page: number;
+    next_page: number | null;
+    page_size: number;
+    prev_page: number | null;
+    total_pages: number;
+    total_records: number;
+  };
 }
 ```
+
+## Sessions
+
+| Method | Description |
+|--------|-------------|
+| `create(body, options?)` | Create a session with MCP gateway |
 
 ## Errors
 
@@ -105,16 +144,35 @@ import {
 } from '@synqedai/typescript';
 
 try {
-  await client.mcpServers.list();
+  await client.sessions.create({
+    user_id: 'user_12345',
+    gateway: { exposure_mode: 'dynamic' },
+  });
 } catch (error) {
   if (error instanceof AuthenticationError) {
-    // 401 — invalid API key
-  } else if (error instanceof RateLimitError) {
-    // 429 — rate limited
-  } else if (error instanceof SynqedAPIError) {
-    // API error with status, code, requestId
-  } else if (error instanceof NetworkError) {
-    // Network failure
+    console.error('Invalid API key');
+  }
+
+  if (error instanceof RateLimitError) {
+    console.error(error.rateLimit);
+  }
+
+  if (error instanceof SynqedAPIError) {
+    console.error(error.code);
+    console.error(error.details);
+    console.error(error.requestId);
+  }
+}
+```
+
+API errors follow this shape:
+
+```json
+{
+  "error": {
+    "code": "validation_failed",
+    "message": "Request validation failed",
+    "details": [{ "field": "name", "reason": "required" }]
   }
 }
 ```
@@ -131,7 +189,7 @@ NetworkError
 default (SynqedClient)
 ```
 
-Types: `SynqedClientConfig`, `RetryConfig`, `MCPServer`, `CreateMCPServerRequest`, `ListMCPServersParams`, `IterateMCPServersParams`, `PaginationParams`, `PageInfo`, `PaginatedResponse`.
+Types: `SynqedClientConfig`, `RetryConfig`, `ApiResponse`, `PaginationParams`, `PageInfo`, `PaginatedResponse`, `SynqedErrorCode`, `SynqedErrorDetail`, `MCPServer`, `MCPTool`, `ListMCPServersParams`, `IterateMCPServersParams`, `Session`, `SessionConnection`, `CreateSessionRequest`, `GatewayExposureMode`.
 
 ## Development
 

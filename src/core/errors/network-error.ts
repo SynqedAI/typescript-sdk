@@ -1,11 +1,26 @@
-import { SynqedError } from '@/core/errors/synqed-error';
+import {
+  SynqedError,
+  type SynqedErrorCode,
+  type SynqedErrorDetail,
+} from '@/core/errors/synqed-error';
 
 export class NetworkError extends SynqedError {
-  constructor(message = 'Network request failed') {
+  constructor(
+    params: {
+      message?: string;
+      code?: SynqedErrorCode;
+      requestId?: string;
+      details?: SynqedErrorDetail[];
+      retryable?: boolean;
+    } = {},
+  ) {
     super({
       type: 'network_error',
-      message,
-      retryable: true,
+      message: params.message ?? 'Network request failed',
+      code: params.code,
+      requestId: params.requestId,
+      details: params.details,
+      retryable: params.retryable ?? true,
     });
     this.name = 'NetworkError';
   }

@@ -1,5 +1,4 @@
 import { BaseError } from './BaseError';
-
 export class TimeoutError
   extends BaseError {
   constructor(
@@ -7,12 +6,9 @@ export class TimeoutError
   ) {
     super({
       type: 'timeout_error',
-
       message,
-
       retryable: true,
     });
-
     this.name =
       'TimeoutError';
   }

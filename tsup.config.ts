@@ -17,5 +17,11 @@ export default defineConfig({
 
   target: 'es2020',
 
-  minify: false
+  minify: false,
+
+  esbuildOptions(options) {
+    options.alias = {
+      '@src': './src',
+    };
+  },
 });

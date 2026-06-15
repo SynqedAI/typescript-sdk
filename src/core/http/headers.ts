@@ -1,12 +1,3 @@
-//Why Centralized Headers?
-
-//We centralized headers.
-// Avoids duplicated auth logic everywhere.
-
-//Idempotency Keys
-//Prevent duplicate requests.
-
-
 import { createUserAgent } from '../runtime/user-agent';
 
 /**

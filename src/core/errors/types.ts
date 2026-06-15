@@ -1,12 +1,3 @@
-//Why?
-
-// This becomes:
-
-// discriminated union base
-
-// for safe narrowing.
-
-
 export type SDKErrorType =
   | 'api_error'
   | 'network_error'

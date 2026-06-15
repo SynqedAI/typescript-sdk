@@ -1,3 +1,3 @@
-export { createPaginator } from './create-paginator';
+export { createPaginator } from "./create-paginator";
 
-export type { PaginatedResponse, PageInfo } from './types';
+export type { PaginatedResponse, PageInfo } from "./types";

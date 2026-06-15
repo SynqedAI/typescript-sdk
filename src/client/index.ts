@@ -1,2 +1,2 @@
-export { SynqedAIClient } from './SynqedClient';
-export type { SynqedAIClientConfig } from './types';
+export { SynqedAIClient } from "./synqed-ai-client";
+export type { SynqedAIClientConfig } from "./types";

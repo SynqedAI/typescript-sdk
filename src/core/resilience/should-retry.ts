@@ -1,4 +1,4 @@
-import { BaseError } from '../errors/BaseError';
+import { BaseError } from "../errors/BaseError";
 
 const RETRYABLE_STATUS_CODES = [
   408, // timeout
@@ -9,31 +9,19 @@ const RETRYABLE_STATUS_CODES = [
   504,
 ];
 
-const SAFE_HTTP_METHODS = [
-  'GET',
-  'HEAD',
-  'OPTIONS',
-];
+const SAFE_HTTP_METHODS = ["GET", "HEAD", "OPTIONS"];
 
 function isAbortError(error: unknown): boolean {
-  return (
-    error instanceof DOMException &&
-    error.name === 'AbortError'
-  );
+  return error instanceof DOMException && error.name === "AbortError";
 }
 
 function isRetryableMethod(
   method: string,
   hasIdempotencyKey: boolean,
 ): boolean {
-  const normalizedMethod =
-    method.toUpperCase();
+  const normalizedMethod = method.toUpperCase();
 
-  if (
-    SAFE_HTTP_METHODS.includes(
-      normalizedMethod,
-    )
-  ) {
+  if (SAFE_HTTP_METHODS.includes(normalizedMethod)) {
     return true;
   }
 
@@ -42,7 +30,7 @@ function isRetryableMethod(
 
 export function shouldRetry(
   error: unknown,
-  method = 'GET',
+  method = "GET",
   hasIdempotencyKey = false,
 ): boolean {
   if (isAbortError(error)) {
@@ -54,27 +42,16 @@ export function shouldRetry(
       return false;
     }
 
-    if (
-      error.status &&
-      !RETRYABLE_STATUS_CODES.includes(
-        error.status,
-      )
-    ) {
+    if (error.status && !RETRYABLE_STATUS_CODES.includes(error.status)) {
       return false;
     }
 
-    return isRetryableMethod(
-      method,
-      hasIdempotencyKey,
-    );
+    return isRetryableMethod(method, hasIdempotencyKey);
   }
 
   // fetch network failures usually throw TypeError
   if (error instanceof TypeError) {
-    return isRetryableMethod(
-      method,
-      hasIdempotencyKey,
-    );
+    return isRetryableMethod(method, hasIdempotencyKey);
   }
 
   return false;

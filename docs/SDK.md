@@ -25,7 +25,7 @@ Official documentation for the `@synqedai/typescript` SDK: packages, architectur
 
 ## Overview
 
-The SynqedAI TypeScript SDK is a **zero-runtime-dependency** client library. It uses native APIs (`fetch`, `URL`, etc.) and follows the **resource-oriented pattern** used by Stripe, OpenAI, and similar SDKs.
+The SynqedAI TypeScript SDK is a **zero-runtime-dependency** client library. It uses native APIs (`fetch`, `URL`, etc.) and follows the **entity-oriented pattern** used by Stripe, OpenAI, and similar SDKs.
 
 ```
 User App
@@ -33,7 +33,7 @@ User App
    ▼
 SynqedAIClient          ← config, auth, shared HTTP engine
    │
-   ├── mcpServers       ← API resource (more resources added over time)
+   ├── mcpServers       ← API entity (more entities added over time)
    │       │
    │       ▼
    └── HttpClient       ← fetch, headers, retry, middleware, errors
@@ -63,12 +63,12 @@ const servers = await client.mcpServers.list({ limit: 10 });
 |------------|------------|---------|
 | `fetch` | `HttpClient.request` | HTTP transport |
 | `URL` | `HttpClient.request` | Resolve `baseURL` + path |
-| `URLSearchParams` | `MCPServersResource.list` | Build query strings |
+| `URLSearchParams` | `MCPServersEntity.list` | Build query strings |
 | `Headers` | `debug-middleware.ts` | Read/redact headers |
 | `AbortSignal` | `RequestOptions.signal` | Cancel requests |
 | `process.env` | `getEnv()` | Read config from environment (Node) |
 | `setTimeout` | `sleep()` | Delay between retries |
-| `JSON.stringify/parse` | Resources, `parseResponse` | Request/response bodies |
+| `JSON.stringify/parse` | Entities, `parseResponse` | Request/response bodies |
 
 ### Dev dependencies
 
@@ -123,9 +123,9 @@ src/
 │   ├── types.ts                      # SynqedAIClientConfig
 │   └── index.ts
 │
-├── resources/                        # PUBLIC (via client): API endpoints
+├── entities/                         # PUBLIC (via client): API endpoints
 │   └── mcp-servers/
-│       ├── mcp-servers.ts            # MCPServersResource
+│       ├── mcp-servers.ts            # MCPServersEntity
 │       ├── types.ts                  # MCPServer, request/params types
 │       └── index.ts
 │
@@ -143,7 +143,7 @@ src/
 
 **Convention:**
 
-- `client/` + `resources/` = what users call
+- `client/` + `entities/` = what users call
 - `core/` = how requests run (mostly internal)
 
 ---
@@ -159,10 +159,10 @@ User
 src/index.ts                    export { SynqedAIClient }
   │
   ▼
-SynqedAIClient                  resolve config, create HttpClient, wire resources
+SynqedAIClient                  resolve config, create HttpClient, wire entities
   │
   ▼
-MCPServersResource              build path/body, call http.request<T>()
+MCPServersEntity              build path/body, call http.request<T>()
   │
   ▼
 HttpClient.request()            URL resolve → headers → middleware → fetch
@@ -201,7 +201,7 @@ const client = new SynqedAIClient({
   timeout: 30_000,         // default: 30 seconds
   debug: false,            // enables request/response logging
   dryRun: false,           // skip network, return request preview
-  middleware: [],          // custom hooks
+  middlewares: [],          // custom hooks
 });
 ```
 
@@ -210,8 +210,8 @@ const client = new SynqedAIClient({
 1. `getEnv('SYNQEDAI_API_KEY')` — fallback for `apiKey`
 2. `getEnv('SYNQEDAI_BASE_URL')` — fallback for `baseURL` (default: `https://synqedai.com/api/v1`)
 3. Merge user middleware + auto-attach `createDebugMiddleware()` if `debug: true`
-4. `new HttpClient({ apiKey, baseURL, timeout, dryRun, middleware })`
-5. `new MCPServersResource(http)` → exposed as `client.mcpServers`
+4. `new HttpClient({ apiKey, baseURL, timeout, dryRun, middlewares })`
+5. `new MCPServersEntity(http)` → exposed as `client.mcpServers`
 
 **`SynqedAIClient` properties:**
 
@@ -223,7 +223,7 @@ const client = new SynqedAIClient({
 | `debug` | `boolean` | config | Debug logging |
 | `dryRun` | `boolean` | config | Skip real HTTP calls |
 | `http` | `HttpClient` | internal | Shared HTTP engine |
-| `mcpServers` | `MCPServersResource` | internal | MCP Servers API |
+| `mcpServers` | `MCPServersEntity` | internal | MCP Servers API |
 
 ---
 
@@ -427,7 +427,7 @@ onRequest  (all middleware, in order)
 
 Auto-attached when `debug: true`. Logs requests, responses, and errors. Redacts sensitive headers (`authorization`, `x-api-key`, `cookie`).
 
-Custom middleware can be passed via `SynqedAIClientConfig.middleware` for logging, tracing, metrics, etc.
+Custom middleware can be passed via `SynqedAIClientConfig.middlewares` for logging, tracing, metrics, etc.
 
 ---
 
@@ -440,7 +440,7 @@ Custom middleware can be passed via `SynqedAIClientConfig.middleware` for loggin
 | `SynqedAIClient` | `client/SynqedClient.ts` | Class |
 | `SynqedAIClientConfig` | `client/types.ts` | Interface |
 
-### `MCPServersResource` methods
+### `MCPServersEntity` methods
 
 | Method | HTTP | Path | Returns |
 |--------|------|------|---------|
@@ -450,7 +450,7 @@ Custom middleware can be passed via `SynqedAIClientConfig.middleware` for loggin
 | `create(body)` | POST | `/mcp-servers` | `Promise<MCPServer>` |
 | `delete(id)` | DELETE | `/mcp-servers/{id}` | `Promise<void>` |
 
-### Resource types
+### Entity types
 
 ```ts
 interface MCPServer {
@@ -560,9 +560,9 @@ See [versioning.md](./versioning.md) for the full versioning policy.
 | dryRun | ✅ Wired | Returns request preview |
 | Debug logging | ✅ Wired | Redacts sensitive headers |
 | User-Agent | ✅ Wired | `synqedai-typescript/{version}` |
-| Idempotency key | ⚠️ Partial | Header support exists; resources don't expose it |
+| Idempotency key | ⚠️ Partial | Header support exists; entities don't expose it |
 | Request timeout | ❌ Not wired | Config exists; not applied to fetch |
-| AbortSignal | ⚠️ Partial | Type exists; resources don't pass options |
+| AbortSignal | ⚠️ Partial | Type exists; entities don't pass options |
 | ValidationError | ❌ Not wired | Class exists; no client-side validation |
 | TimeoutError | ❌ Not wired | Class exists; timeout not implemented |
 | Error exports | ❌ Not exported | Users can't import errors from package root |
@@ -591,7 +591,7 @@ SynqedAIClient
     │               │       └── shouldRetry() → backoff → sleep() → retry
     │               └── return Promise<T>
     │
-    └── mcpServers: MCPServersResource
+    └── mcpServers: MCPServersEntity
             ├── list()      → removeUndefined → http.request
             ├── listAll()   → createPaginator → list (loop)
             ├── retrieve()  → http.request
@@ -606,8 +606,8 @@ SynqedAIClient
 | `SYNQEDAI_API_KEY` | API authentication | — |
 | `SYNQEDAI_BASE_URL` | API base URL | `https://synqedai.com/api/v1` |
 
-### Adding a new resource
+### Adding a new entity
 
-1. Create `src/resources/{name}/` with `types.ts`, `{name}.ts`, `index.ts`
-2. Add `readonly {name}: {Name}Resource` to `SynqedAIClient`
-3. Instantiate in constructor: `new {Name}Resource(this.http)`
+1. Create `src/entities/{name}/` with `types.ts`, `{name}.ts`, `index.ts`
+2. Add `readonly {name}: {Name}Entity` to `SynqedAIClient`
+3. Instantiate in constructor: `new {Name}Entity(this.http)`

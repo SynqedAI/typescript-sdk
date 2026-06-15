@@ -1,19 +1,12 @@
-import { sleep } from './sleep';
+import { sleep } from "./sleep";
+import { calculateBackoffDelay, type RetryConfig } from "./retry";
 
-import {
-  calculateBackoffDelay,
-  type RetryConfig,
-} from './retry';
-
-import { addJitter } from './jitter';
-
-import { shouldRetry } from './should-retry';
+import { addJitter } from "./jitter";
+import { shouldRetry } from "./should-retry";
 
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
   retries: 3,
-
   baseDelayMs: 500,
-
   maxDelayMs: 5000,
 };
 
@@ -22,33 +15,26 @@ export async function executeWithRetry<T>(
 
   options?: {
     method?: string;
-
     hasIdempotencyKey?: boolean;
   },
 
-  config: RetryConfig =
-    DEFAULT_RETRY_CONFIG,
+  config: RetryConfig = DEFAULT_RETRY_CONFIG,
 ): Promise<T> {
   let lastError: unknown;
 
-  for (
-    let attempt = 0;
-    attempt <= config.retries;
-    attempt++
-  ) {
+  for (let attempt = 0; attempt <= config.retries; attempt++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error;
 
-      const retryable =
-        shouldRetry(
-          error,
+      const retryable = shouldRetry(
+        error,
 
-          options?.method,
+        options?.method,
 
-          options?.hasIdempotencyKey,
-        );
+        options?.hasIdempotencyKey,
+      );
 
       // do not retry unsafe errors
       if (!retryable) {
@@ -56,18 +42,12 @@ export async function executeWithRetry<T>(
       }
 
       // max retries reached
-      if (
-        attempt === config.retries
-      ) {
+      if (attempt === config.retries) {
         break;
       }
 
       const delay = addJitter(
-        calculateBackoffDelay(
-          attempt,
-          config.baseDelayMs,
-          config.maxDelayMs,
-        ),
+        calculateBackoffDelay(attempt, config.baseDelayMs, config.maxDelayMs),
       );
 
       await sleep(delay);

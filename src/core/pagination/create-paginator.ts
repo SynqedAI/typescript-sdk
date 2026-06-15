@@ -1,43 +1,21 @@
-// Why Async Generator?
+import type { PaginatedResponse } from "./types";
 
-// Allows streaming-style iteration.
+export async function* createPaginator<T>(
+  fetchPage: (cursor?: string) => Promise<PaginatedResponse<T>>,
+) {
+  let cursor: string | undefined;
 
-// Very scalable for:
+  while (true) {
+    const page = await fetchPage(cursor);
 
-// large datasets
-// low memory usage
-// enterprise APIs
-
-
-import type {
-    PaginatedResponse,
-  } from './types';
-  
-  export async function* createPaginator<T>(
-    fetchPage: (
-      cursor?: string,
-    ) => Promise<
-      PaginatedResponse<T>
-    >,
-  ) {
-    let cursor:
-      string | undefined;
-  
-    while (true) {
-      const page =
-        await fetchPage(cursor);
-  
-      for (const item of page.data) {
-        yield item;
-      }
-  
-      if (
-        !page.pageInfo.hasMore
-      ) {
-        break;
-      }
-  
-      cursor =
-        page.pageInfo.nextCursor;
+    for (const item of page.data) {
+      yield item;
     }
+
+    if (!page.pageInfo.hasMore) {
+      break;
+    }
+
+    cursor = page.pageInfo.nextCursor;
   }
+}

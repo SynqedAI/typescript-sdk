@@ -1,7 +1,4 @@
-//Professional SDK analytics/debugging.
-//Servers can identify SDK usage.
-
-import { VERSION } from '../../version';
+import { VERSION } from '@src/version';
 
 export function createUserAgent(): string {
   return `synqedai-typescript/${VERSION}`;

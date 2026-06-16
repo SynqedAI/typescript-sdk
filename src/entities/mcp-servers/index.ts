@@ -1,6 +1,9 @@
 export type {
   MCPServer,
+  MCPServerDetail,
+  MCPServerAuthMethod,
+  MCPServerScope,
   MCPTool,
   ListMCPServersParams,
-  IterateMCPServersParams,
+  ListMCPServerToolsParams,
 } from '@/entities/mcp-servers/types';

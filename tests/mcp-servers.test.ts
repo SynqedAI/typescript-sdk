@@ -3,6 +3,8 @@ import { SynqedClient } from '@/client/synqed-client';
 import { createPaginator } from '@/core/pagination/create-paginator';
 import {
   createMcpServer,
+  createMcpServerDetail,
+  createMcpTool,
   createPaginatedResponse,
   getRequestHeaders,
   jsonResponse,
@@ -16,66 +18,84 @@ afterEach(() => {
 describe('MCPServersEntity', () => {
   it('list() returns full PaginatedResponse without unwrapping', async () => {
     stubFetch(() =>
-      jsonResponse(createPaginatedResponse([createMcpServer('1', 'A')])),
+      jsonResponse(createPaginatedResponse([createMcpServer('hubspot', 'HubSpot')])),
     );
 
     const client = new SynqedClient({ retries: false });
     const page = await client.mcpServers.list();
 
     expect(page.data).toHaveLength(1);
+    expect(page.data[0]?.slug).toBe('hubspot');
     expect(page.pagination).toBeDefined();
     expect(page.pagination.total_records).toBe(1);
   });
 
-  it('list() calls GET /mcp-servers', async () => {
+  it('list() calls GET /mcp-servers with pagination and search', async () => {
     const fetchMock = stubFetch((url, init) => {
       expect(url).toBe(
-        'https://api.synqed.ai/v1/mcp-servers?page=1&page_size=20',
+        'https://api.synqed.ai/v1/mcp-servers?page=1&page_size=20&search=hub',
       );
       expect(init?.method).toBe('GET');
-      return jsonResponse(createPaginatedResponse([createMcpServer('1', 'A')]));
+      return jsonResponse(
+        createPaginatedResponse([createMcpServer('hubspot', 'HubSpot')]),
+      );
     });
 
     const client = new SynqedClient({ retries: false });
-    const page = await client.mcpServers.list({ page: 1, page_size: 20 });
+    const page = await client.mcpServers.list({
+      page: 1,
+      page_size: 20,
+      search: 'hub',
+    });
 
     expect(page.data).toHaveLength(1);
     expect(page.pagination.total_records).toBe(1);
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
-  it('retrieve() unwraps ApiResponse.data', async () => {
-    stubFetch((url) => {
-      expect(url).toBe('https://api.synqed.ai/v1/mcp-servers/gw_1');
-      return jsonResponse({ data: createMcpServer('gw_1', 'Server A') });
+  it('getBySlug() calls GET /mcp-servers/:slug and unwraps ApiResponse.data', async () => {
+    stubFetch((url, init) => {
+      expect(url).toBe('https://api.synqed.ai/v1/mcp-servers/hubspot');
+      expect(init?.method).toBe('GET');
+      return jsonResponse({ data: createMcpServerDetail('hubspot', 'HubSpot') });
     });
 
     const client = new SynqedClient({ retries: false });
-    const server = await client.mcpServers.retrieve('gw_1');
+    const server = await client.mcpServers.getBySlug('hubspot');
 
-    expect(server.id).toBe('gw_1');
-    expect(server.name).toBe('Server A');
+    expect(server.slug).toBe('hubspot');
+    expect(server.name).toBe('HubSpot');
+    expect(server.auth_methods?.[0]?.type).toBe('oauth');
+    expect(server.tools?.[0]?.name).toBe('create_contact');
   });
 
-  it('listTools() calls GET /mcp-servers/:id/tools', async () => {
-    stubFetch((url) => {
+  it('listTools() calls GET /mcp-servers/:slug/tools with search', async () => {
+    stubFetch((url, init) => {
       expect(url).toBe(
-        'https://api.synqed.ai/v1/mcp-servers/gw_1/tools?page=1',
+        'https://api.synqed.ai/v1/mcp-servers/hubspot/tools?page=1&search=contact',
       );
+      expect(init?.method).toBe('GET');
       return jsonResponse(
         createPaginatedResponse([
-          { name: 'search', description: 'Search the web' },
+          createMcpTool('create_contact', {
+            title: 'Create Contact',
+            description: 'Create a new contact in HubSpot CRM',
+          }),
         ]),
       );
     });
 
     const client = new SynqedClient({ retries: false });
-    const tools = await client.mcpServers.listTools('gw_1', { page: 1 });
+    const tools = await client.mcpServers.listTools('hubspot', {
+      page: 1,
+      search: 'contact',
+    });
 
-    expect(tools.data[0]?.name).toBe('search');
+    expect(tools.data[0]?.name).toBe('create_contact');
+    expect(tools.data[0]?.title).toBe('Create Contact');
   });
 
-  it('iterate() fetches multiple pages via pagination.next_page', async () => {
+  it('listAll() follows pagination.next_page and stops when null', async () => {
     let call = 0;
     const fetchMock = stubFetch((url) => {
       call += 1;
@@ -83,47 +103,15 @@ describe('MCPServersEntity', () => {
       if (call === 1) {
         expect(url).toContain('page=1');
         return jsonResponse(
-          createPaginatedResponse([createMcpServer('1', 'A')], {
-            current_page: 1,
+          createPaginatedResponse([createMcpServer('hubspot', 'HubSpot')], {
             next_page: 2,
-            total_pages: 2,
           }),
         );
       }
 
       expect(url).toContain('page=2');
       return jsonResponse(
-        createPaginatedResponse([createMcpServer('2', 'B')], {
-          current_page: 2,
-          next_page: null,
-          total_pages: 2,
-        }),
-      );
-    });
-
-    const client = new SynqedClient({ retries: false });
-    const names: string[] = [];
-
-    for await (const server of client.mcpServers.iterate({ page_size: 20 })) {
-      names.push(server.name);
-    }
-
-    expect(names).toEqual(['A', 'B']);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it('listAll() returns full array', async () => {
-    stubFetch((url) => {
-      if (url.includes('page=1')) {
-        return jsonResponse(
-          createPaginatedResponse([createMcpServer('1', 'A')], {
-            next_page: 2,
-          }),
-        );
-      }
-
-      return jsonResponse(
-        createPaginatedResponse([createMcpServer('2', 'B')], {
+        createPaginatedResponse([createMcpServer('github', 'GitHub')], {
           next_page: null,
         }),
       );
@@ -132,7 +120,8 @@ describe('MCPServersEntity', () => {
     const client = new SynqedClient({ retries: false });
     const all = await client.mcpServers.listAll();
 
-    expect(all.map((item) => item.name)).toEqual(['A', 'B']);
+    expect(all.map((item) => item.name)).toEqual(['HubSpot', 'GitHub']);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -145,12 +134,12 @@ describe('createPaginator', () => {
         pages.push(page);
 
         if (page === 1) {
-          return createPaginatedResponse([createMcpServer('1', 'A')], {
+          return createPaginatedResponse([createMcpServer('hubspot', 'HubSpot')], {
             next_page: 2,
           });
         }
 
-        return createPaginatedResponse([createMcpServer('2', 'B')], {
+        return createPaginatedResponse([createMcpServer('github', 'GitHub')], {
           next_page: null,
         });
       },
@@ -162,13 +151,13 @@ describe('createPaginator', () => {
     }
 
     expect(pages).toEqual([1, 2]);
-    expect(items).toEqual(['A', 'B']);
+    expect(items).toEqual(['HubSpot', 'GitHub']);
   });
 
   it('detects pagination loops', async () => {
     const generator = createPaginator({
       fetchPage: async () =>
-        createPaginatedResponse([createMcpServer('1', 'A')], {
+        createPaginatedResponse([createMcpServer('hubspot', 'HubSpot')], {
           next_page: 1,
         }),
     });
@@ -185,7 +174,7 @@ describe('list response shape', () => {
   it('supports { data, pagination }', async () => {
     stubFetch(() =>
       jsonResponse({
-        data: [createMcpServer('1', 'A')],
+        data: [createMcpServer('hubspot', 'HubSpot')],
         pagination: {
           total_records: 100,
           total_pages: 5,

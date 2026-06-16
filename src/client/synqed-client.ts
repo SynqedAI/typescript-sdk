@@ -7,6 +7,7 @@ import {
   ENV_BASE_URL,
   getEnv,
 } from '@/core/runtime/env';
+import { AuthConfigsEntity } from '@/entities/auth-configs/auth-configs';
 import { MCPServersEntity } from '@/entities/mcp-servers/mcp-servers';
 import { SessionsEntity } from '@/entities/sessions/sessions';
 
@@ -15,6 +16,7 @@ export class SynqedClient {
   readonly baseUrl: string;
   readonly timeoutMs: number;
   readonly debug: boolean;
+  readonly authConfigs: AuthConfigsEntity;
   readonly mcpServers: MCPServersEntity;
   readonly sessions: SessionsEntity;
   private readonly http: HttpClient;
@@ -33,6 +35,7 @@ export class SynqedClient {
       retries: config.retries,
     });
 
+    this.authConfigs = new AuthConfigsEntity(this.http, this.timeoutMs);
     this.mcpServers = new MCPServersEntity(this.http, this.timeoutMs);
     this.sessions = new SessionsEntity(this.http, this.timeoutMs);
   }

@@ -28,9 +28,12 @@ export type {
 
 export type {
   MCPServer,
+  MCPServerDetail,
+  MCPServerAuthMethod,
+  MCPServerScope,
   MCPTool,
   ListMCPServersParams,
-  IterateMCPServersParams,
+  ListMCPServerToolsParams,
 } from '@/entities/mcp-servers';
 
 export type {
@@ -39,3 +42,19 @@ export type {
   CreateSessionRequest,
   GatewayExposureMode,
 } from '@/entities/sessions';
+
+export type {
+  AuthConfig,
+  AuthConfigListItem,
+  AuthConfigAuthMethod,
+  AuthConfigOAuthOverride,
+  AuthConfigScope,
+  AuthConfigServer,
+  AuthConfigSortBy,
+  AuthConfigSortOrder,
+  AuthConfigStatus,
+  AuthMethodType,
+  CreateAuthConfigRequest,
+  ListAuthConfigsParams,
+  UpdateAuthConfigRequest,
+} from '@/entities/auth-configs';

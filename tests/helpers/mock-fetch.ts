@@ -1,14 +1,67 @@
 import { vi } from 'vitest';
 import type { PaginatedResponse } from '@/core/pagination/types';
-import type { MCPServer } from '@/entities/mcp-servers/types';
+import type { MCPServer, MCPServerDetail, MCPTool } from '@/entities/mcp-servers/types';
 import type { Session } from '@/entities/sessions/types';
 
-export function createMcpServer(id: string, name: string): MCPServer {
+export function createMcpServer(
+  slug: string,
+  name: string,
+  overrides: Partial<MCPServer> = {},
+): MCPServer {
   return {
-    id,
+    slug,
     name,
-    transport: 'stdio',
-    created_at: '2026-01-01T00:00:00Z',
+    description: `${name} MCP server`,
+    logo_url: `https://cdn.synqed.ai/logos/${slug}.png`,
+    total_tools: 24,
+    ...overrides,
+  };
+}
+
+export function createMcpServerDetail(
+  slug: string,
+  name: string,
+  overrides: Partial<MCPServerDetail> = {},
+): MCPServerDetail {
+  return {
+    slug,
+    name,
+    description: `${name} MCP server for managing contacts, deals, and tickets`,
+    logo_url: `https://cdn.synqed.ai/logos/${slug}.png`,
+    service_url: `https://mcp.synqed.ai/servers/${slug}`,
+    auth_methods: [
+      {
+        name: 'OAuth 2.0',
+        type: 'oauth',
+        scopes: [
+          {
+            scope_key: 'crm.objects.contacts.read',
+            description: 'Read contacts from your CRM',
+            is_required: true,
+          },
+        ],
+      },
+    ],
+    tools: [
+      {
+        name: 'create_contact',
+        title: 'Create Contact',
+        description: 'Create a new contact',
+      },
+    ],
+    ...overrides,
+  };
+}
+
+export function createMcpTool(
+  name: string,
+  overrides: Partial<MCPTool> = {},
+): MCPTool {
+  return {
+    name,
+    title: name,
+    description: `Tool: ${name}`,
+    ...overrides,
   };
 }
 

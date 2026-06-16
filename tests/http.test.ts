@@ -8,9 +8,10 @@ import { parseResponse } from '@/core/http/response';
 import type { ApiResponse, PaginatedResponse } from '@/core/pagination/types';
 import { DEFAULT_BASE_URL } from '@/core/runtime/env';
 import { joinUrl } from '@/core/utils/join-url';
-import type { MCPServer } from '@/entities/mcp-servers/types';
+import type { MCPServer, MCPServerDetail } from '@/entities/mcp-servers/types';
 import {
   createMcpServer,
+  createMcpServerDetail,
   createPaginatedResponse,
   emptyBodyResponse,
   jsonResponse,
@@ -44,15 +45,15 @@ describe('DEFAULT_BASE_URL', () => {
 
 describe('parseResponse', () => {
   it('handles JSON ApiResponse', async () => {
-    const response = jsonResponse({ data: { id: 'gw_1', name: 'Server' } });
+    const response = jsonResponse({ data: { slug: 'hubspot', name: 'HubSpot' } });
     const body = await parseResponse<ApiResponse<MCPServer>>(response);
 
-    expect(body.data.id).toBe('gw_1');
+    expect(body.data.slug).toBe('hubspot');
   });
 
   it('handles JSON PaginatedResponse', async () => {
     const response = jsonResponse(
-      createPaginatedResponse([createMcpServer('1', 'A')]),
+      createPaginatedResponse([createMcpServer('hubspot', 'HubSpot')]),
     );
     const body = await parseResponse<PaginatedResponse<MCPServer>>(response);
 
@@ -92,7 +93,7 @@ describe('parseResponse', () => {
 describe('HttpClient response flow', () => {
   it('returns PaginatedResponse directly for list endpoints', async () => {
     stubFetch(() =>
-      jsonResponse(createPaginatedResponse([createMcpServer('1', 'A')])),
+      jsonResponse(createPaginatedResponse([createMcpServer('hubspot', 'HubSpot')])),
     );
 
     const http = new HttpClient({
@@ -105,13 +106,13 @@ describe('HttpClient response flow', () => {
       { method: 'GET' },
     );
 
-    expect(page.data[0]?.name).toBe('A');
+    expect(page.data[0]?.name).toBe('HubSpot');
     expect(page.pagination.total_records).toBe(1);
   });
 
   it('returns ApiResponse for single-resource endpoints before entity unwrap', async () => {
     stubFetch(() =>
-      jsonResponse({ data: createMcpServer('gw_1', 'Server A') }),
+      jsonResponse({ data: createMcpServerDetail('hubspot', 'HubSpot') }),
     );
 
     const http = new HttpClient({
@@ -119,12 +120,12 @@ describe('HttpClient response flow', () => {
       retries: false,
     });
 
-    const response = await http.request<ApiResponse<MCPServer>>(
-      '/mcp-servers/gw_1',
+    const response = await http.request<ApiResponse<MCPServerDetail>>(
+      '/mcp-servers/hubspot',
       { method: 'GET' },
     );
 
-    expect(response.data.id).toBe('gw_1');
+    expect(response.data.slug).toBe('hubspot');
   });
 
   it('returns undefined for empty-body success responses', async () => {

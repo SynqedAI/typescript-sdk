@@ -1,19 +1,15 @@
-import type { RequestOptions } from '@/core/http/request';
-import { HttpClient } from '@/core/http/http-client';
-import type { ApiResponse } from '@/core/pagination/types';
-import {
-  collectPaginator,
-  createPaginator,
-  type PaginatedResponse,
-} from '@/core/pagination';
-import { buildQueryString } from '@/core/utils/build-query-string';
+import type { RequestOptions } from "@/core/http/request";
+import { HttpClient } from "@/core/http/http-client";
+import type { ApiResponse } from "@/core/pagination/types";
+import type { PaginatedResponse } from "@/core/pagination";
+import { buildQueryString } from "@/core/utils/build-query-string";
 import type {
-  IterateMCPServersParams,
   ListMCPServersParams,
+  ListMCPServerToolsParams,
   MCPServer,
+  MCPServerDetail,
   MCPTool,
-} from '@/entities/mcp-servers/types';
-import type { PaginationParams } from '@/core/pagination/types';
+} from "@/entities/mcp-servers/types";
 
 /** @internal */
 export class MCPServersEntity {
@@ -40,43 +36,53 @@ export class MCPServersEntity {
     const query = buildQueryString({
       page: params.page,
       page_size: params.page_size,
+      search: params.search,
     });
 
     return this.http.request<PaginatedResponse<MCPServer>>(
       `/mcp-servers${query}`,
-      { method: 'GET' },
+      { method: "GET" },
       this.resolveOptions(options),
     );
   }
 
   /**
-   * Lazily iterates MCP servers across all pages.
-   */
-  iterate(params: IterateMCPServersParams = {}): AsyncGenerator<MCPServer> {
-    const { initialPage = 1, maxPages, ...listParams } = params;
-
-    return createPaginator({
-      fetchPage: (page) => this.list({ ...listParams, page }),
-      initialPage,
-      maxPages,
-    });
-  }
-
-  /**
    * Fetches all MCP servers across every page.
+   * SDK convenience helper — follows `pagination.next_page` internally.
    */
-  listAll(params: IterateMCPServersParams = {}): Promise<MCPServer[]> {
-    return collectPaginator(this.iterate(params));
+  async listAll(
+    params: Omit<ListMCPServersParams, "page"> = {},
+    options: RequestOptions = {},
+  ): Promise<MCPServer[]> {
+    const items: MCPServer[] = [];
+    let page = 1;
+
+    while (true) {
+      const response = await this.list({ ...params, page }, options);
+      items.push(...response.data);
+
+      const nextPage = response.pagination.next_page;
+      if (nextPage === null || nextPage === undefined) {
+        break;
+      }
+
+      page = nextPage;
+    }
+
+    return items;
   }
 
   /**
-   * Retrieves a single MCP server by ID.
+   * Returns full details for a single MCP server by slug.
    * Unwraps {@link ApiResponse} and returns the inner resource.
    */
-  async retrieve(id: string, options: RequestOptions = {}): Promise<MCPServer> {
-    const response = await this.http.request<ApiResponse<MCPServer>>(
-      `/mcp-servers/${encodeURIComponent(id)}`,
-      { method: 'GET' },
+  async getBySlug(
+    slug: string,
+    options: RequestOptions = {},
+  ): Promise<MCPServerDetail> {
+    const response = await this.http.request<ApiResponse<MCPServerDetail>>(
+      `/mcp-servers/${encodeURIComponent(slug)}`,
+      { method: "GET" },
       this.resolveOptions(options),
     );
 
@@ -88,18 +94,19 @@ export class MCPServersEntity {
    * Returns the full {@link PaginatedResponse} (`{ data, pagination }`).
    */
   listTools(
-    id: string,
-    params: PaginationParams = {},
+    slug: string,
+    params: ListMCPServerToolsParams = {},
     options: RequestOptions = {},
   ): Promise<PaginatedResponse<MCPTool>> {
     const query = buildQueryString({
       page: params.page,
       page_size: params.page_size,
+      search: params.search,
     });
 
     return this.http.request<PaginatedResponse<MCPTool>>(
-      `/mcp-servers/${encodeURIComponent(id)}/tools${query}`,
-      { method: 'GET' },
+      `/mcp-servers/${encodeURIComponent(slug)}/tools${query}`,
+      { method: "GET" },
       this.resolveOptions(options),
     );
   }

@@ -27,7 +27,7 @@ describe('retry', () => {
         );
       }
 
-      return jsonResponse(createPaginatedResponse([createMcpServer('1', 'A')]));
+      return jsonResponse(createPaginatedResponse([createMcpServer('hubspot', 'HubSpot')]));
     });
 
     const client = new SynqedClient({
@@ -99,7 +99,7 @@ describe('retry', () => {
     controller.abort();
 
     const fetchMock = stubFetch(() =>
-      jsonResponse(createPaginatedResponse([createMcpServer('1', 'A')])),
+      jsonResponse(createPaginatedResponse([createMcpServer('hubspot', 'HubSpot')])),
     );
 
     const client = new SynqedClient({

@@ -1,29 +1,54 @@
 import type { PaginationParams } from '@/core/pagination/types';
 
-/** MCP server resource returned by the SynqedAI API. */
+/** MCP server item returned by list endpoints. */
 export interface MCPServer {
-  id: string;
   name: string;
-  transport?: string;
-  created_at?: string;
+  slug: string;
+  description?: string;
+  logo_url?: string;
+  total_tools?: number;
+}
+
+export interface MCPServerScope {
+  scope_key: string;
+  description?: string;
+  is_required?: boolean;
+}
+
+export interface MCPServerAuthMethod {
+  name: string;
+  type: string;
+  scopes?: MCPServerScope[];
 }
 
 /** MCP tool exposed by an MCP server. */
 export interface MCPTool {
   name: string;
-  description?: string | null;
+  title?: string;
+  description?: string;
   input_schema?: Record<string, unknown>;
+  output_schema?: Record<string, unknown>;
+}
+
+/** Full MCP server details including auth methods and tools. */
+export interface MCPServerDetail {
+  name: string;
+  slug: string;
+  description?: string;
+  logo_url?: string;
+  service_url?: string;
+  auth_methods?: MCPServerAuthMethod[];
+  tools?: MCPTool[];
 }
 
 /** Query parameters for listing MCP servers. */
-export type ListMCPServersParams = PaginationParams;
+export interface ListMCPServersParams extends PaginationParams {
+  /** Search servers by name or description. */
+  search?: string;
+}
 
-export interface IterateMCPServersParams extends Omit<
-  ListMCPServersParams,
-  'page'
-> {
-  /** Page number to start iterating from. Defaults to `1`. */
-  initialPage?: number;
-  /** Maximum number of pages to fetch before aborting. */
-  maxPages?: number;
+/** Query parameters for listing MCP server tools. */
+export interface ListMCPServerToolsParams extends PaginationParams {
+  /** Search tools by name or description. */
+  search?: string;
 }

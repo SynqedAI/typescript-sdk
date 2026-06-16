@@ -1,12 +1,12 @@
-import type { PaginationParams } from '@/core/pagination/types';
+import type { PaginationParams } from "@/core/pagination/types";
 
-export type AuthConfigStatus = 'enabled' | 'disabled';
+export type AuthConfigStatus = "enabled" | "disabled";
 
-export type AuthConfigSortBy = 'name' | 'created_at' | 'updated_at';
+export type AuthConfigSortBy = "name" | "created_at" | "updated_at";
 
-export type AuthConfigSortOrder = 'asc' | 'desc';
+export type AuthConfigSortOrder = "asc" | "desc";
 
-export type AuthMethodType = 'oauth' | 'api_key';
+export type AuthMethodType = "oauth" | "api_key";
 
 export interface AuthConfigAuthMethod {
   name: string;
@@ -25,7 +25,6 @@ export interface AuthConfigScope {
   scope_key: string;
 }
 
-/** Auth config item returned by list endpoints. */
 export interface AuthConfigListItem {
   id: string;
   name: string;
@@ -37,7 +36,6 @@ export interface AuthConfigListItem {
   updated_at: string;
 }
 
-/** Full auth config returned by create. */
 export interface AuthConfig extends AuthConfigListItem {
   scopes?: AuthConfigScope[];
 }
@@ -47,7 +45,6 @@ export interface AuthConfigOAuthOverride {
   client_secret?: string;
 }
 
-/** Request body for creating an auth config. */
 export interface CreateAuthConfigRequest {
   auth_method_type: AuthMethodType;
   name: string;
@@ -56,13 +53,11 @@ export interface CreateAuthConfigRequest {
   scopes?: string[];
 }
 
-/** Request body for updating an auth config. */
 export interface UpdateAuthConfigRequest {
   name?: string;
   oauth_override?: AuthConfigOAuthOverride;
 }
 
-/** Query parameters for listing auth configs. */
 export interface ListAuthConfigsParams extends PaginationParams {
   server_slug?: string;
   status?: AuthConfigStatus;

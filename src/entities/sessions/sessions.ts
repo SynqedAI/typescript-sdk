@@ -13,8 +13,16 @@ export class SessionsEntity {
     private readonly defaultTimeoutMs: number,
   ) {}
 
+  private resolveOptions(options: RequestOptions = {}): RequestOptions {
+    return {
+      ...options,
+      timeoutMs: options.timeoutMs ?? this.defaultTimeoutMs,
+    };
+  }
+
   /**
-   * Creates a new session with an MCP gateway.
+   * Finds or creates a session for a user.
+   * Optionally creates a gateway inline or uses an existing `gateway_id`.
    * Unwraps {@link ApiResponse} and returns the inner resource.
    */
   async create(
@@ -27,10 +35,21 @@ export class SessionsEntity {
         method: 'POST',
         body: JSON.stringify(body),
       },
-      {
-        ...options,
-        timeoutMs: options.timeoutMs ?? this.defaultTimeoutMs,
-      },
+      this.resolveOptions(options),
+    );
+
+    return response.data;
+  }
+
+  /**
+   * Retrieves an existing session by instance ID.
+   * Unwraps {@link ApiResponse} and returns the inner resource.
+   */
+  async getById(id: string, options: RequestOptions = {}): Promise<Session> {
+    const response = await this.http.request<ApiResponse<Session>>(
+      `/sessions/${encodeURIComponent(id)}`,
+      { method: 'GET' },
+      this.resolveOptions(options),
     );
 
     return response.data;

@@ -85,16 +85,24 @@ export function createPaginatedResponse<T>(
 
 export function createSession(overrides: Partial<Session> = {}): Session {
   return {
-    id: 'sess_123',
-    user_id: 'user_12345',
-    gateway_id: 'gw_abc123',
-    status: 'active',
+    id: 'inst_acme42x',
+    user_id: 'usr_acme_sales_42',
+    gateway_id: 'gw_crm2x8fp',
+    status: 'enabled',
     mcp: {
-      url: 'https://mcp.synqed.ai/sess_123',
+      url: 'https://mcp.synqed.ai/mcp-proxy-api/v1/acme-corp-sales-team/mcp',
       headers: { Authorization: 'Bearer token' },
     },
-    connections: [],
-    created_at: '2026-01-01T00:00:00Z',
+    connections: [
+      {
+        server_slug: 'hubspot',
+        server_name: 'HubSpot',
+        connection_status: 'connected',
+        redirect_url:
+          'https://mcp.synqed.ai/api/connections/conn_hb9x2k/connect',
+      },
+    ],
+    created_at: '2026-06-11T10:00:00Z',
     ...overrides,
   };
 }

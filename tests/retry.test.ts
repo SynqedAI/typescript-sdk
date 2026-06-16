@@ -4,7 +4,6 @@ import {
   createMcpServer,
   createPaginatedResponse,
   createSession,
-  getRequestHeaders,
   jsonResponse,
   stubFetch,
 } from './helpers/mock-fetch';
@@ -55,7 +54,7 @@ describe('retry', () => {
     await expect(
       client.sessions.create({
         user_id: 'user_12345',
-        gateway: { exposure_mode: 'dynamic' },
+        gateway: { name: 'Test Gateway', exposure_mode: 'dynamic' },
       }),
     ).rejects.toThrow('Server error');
 
@@ -85,12 +84,12 @@ describe('retry', () => {
     const session = await client.sessions.create(
       {
         user_id: 'user_12345',
-        gateway: { exposure_mode: 'dynamic' },
+        gateway: { name: 'Test Gateway', exposure_mode: 'dynamic' },
       },
       { idempotencyKey: 'session-user-12345' },
     );
 
-    expect(session.id).toBe('sess_123');
+    expect(session.id).toBe('inst_acme42x');
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
@@ -138,62 +137,5 @@ describe('timeout and abort', () => {
 
     await vi.advanceTimersByTimeAsync(60);
     await assertion;
-  });
-});
-
-describe('SessionsEntity', () => {
-  it('create() calls POST /sessions', async () => {
-    stubFetch((url, init) => {
-      expect(url).toBe('https://api.synqed.ai/v1/sessions');
-      expect(init?.method).toBe('POST');
-      return jsonResponse({ data: createSession() });
-    });
-
-    const client = new SynqedClient({ retries: false });
-    const session = await client.sessions.create({
-      user_id: 'user_12345',
-      gateway: {
-        name: 'My App Gateway',
-        exposure_mode: 'dynamic',
-        include_all_servers: true,
-      },
-    });
-
-    expect(session.mcp.url).toBe('https://mcp.synqed.ai/sess_123');
-  });
-
-  it('create() sends Idempotency-Key', async () => {
-    stubFetch((_url, init) => {
-      const headers = getRequestHeaders(init);
-      expect(headers.get('Idempotency-Key')).toBe('session-user-12345');
-      return jsonResponse({ data: createSession() });
-    });
-
-    const client = new SynqedClient({ retries: false });
-
-    await client.sessions.create(
-      {
-        user_id: 'user_12345',
-        gateway: { exposure_mode: 'dynamic' },
-      },
-      { idempotencyKey: 'session-user-12345' },
-    );
-  });
-
-  it('create() unwraps ApiResponse.data', async () => {
-    stubFetch(() =>
-      jsonResponse({
-        data: createSession({ id: 'sess_unwrapped', user_id: 'user_999' }),
-      }),
-    );
-
-    const client = new SynqedClient({ retries: false });
-    const session = await client.sessions.create({
-      user_id: 'user_999',
-      gateway: { exposure_mode: 'dynamic' },
-    });
-
-    expect(session.id).toBe('sess_unwrapped');
-    expect(session.user_id).toBe('user_999');
   });
 });

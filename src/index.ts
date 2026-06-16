@@ -39,6 +39,8 @@ export type {
 export type {
   Session,
   SessionConnection,
+  SessionMcpEndpoint,
+  CreateSessionGateway,
   CreateSessionRequest,
   GatewayExposureMode,
 } from '@/entities/sessions';
@@ -58,3 +60,46 @@ export type {
   ListAuthConfigsParams,
   UpdateAuthConfigRequest,
 } from '@/entities/auth-configs';
+
+export type {
+  Connection,
+  ConnectionStatus,
+  InitiateConnectionRequest,
+  ListConnectionsParams,
+} from '@/entities/connections';
+
+export type {
+  ConnectionLink,
+  CreateConnectionLinkRequest,
+  CreateGatewayInstanceRequest,
+  GatewayInstance,
+  GatewayInstanceConnectResponse,
+  GatewayInstanceConnection,
+  InstanceConnectionStatus,
+  ListGatewayInstanceConnectionsParams,
+  ListGatewayInstancesParams,
+  MCPEndpoint,
+} from '@/entities/gateway-instances';
+
+export type {
+  AddGatewayServerRequest,
+  AddGatewayToolsRequest,
+  AddGatewayToolsResponse,
+  CreateGatewayRequest,
+  Gateway,
+  GatewayServer,
+  GatewayServerAuthConfig,
+  GatewayServerInput,
+  GatewayStatus,
+  GatewayTool,
+  GatewayToolInput,
+  ListGatewayServersParams,
+  ListGatewaysParams,
+  ListGatewayToolsParams,
+  RemoveGatewayToolsRequest,
+  RemoveGatewayToolsResponse,
+  ToolAnnotationPolicy,
+  UpdateGatewayRequest,
+} from '@/entities/gateways';
+
+export type { Trace, ListTracesParams } from '@/entities/traces';

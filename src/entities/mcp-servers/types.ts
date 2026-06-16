@@ -1,6 +1,5 @@
-import type { PaginationParams } from '@/core/pagination/types';
+import type { PaginationParams } from "@/core/pagination/types";
 
-/** MCP server item returned by list endpoints. */
 export interface MCPServer {
   name: string;
   slug: string;
@@ -21,7 +20,6 @@ export interface MCPServerAuthMethod {
   scopes?: MCPServerScope[];
 }
 
-/** MCP tool exposed by an MCP server. */
 export interface MCPTool {
   name: string;
   title?: string;
@@ -30,7 +28,6 @@ export interface MCPTool {
   output_schema?: Record<string, unknown>;
 }
 
-/** Full MCP server details including auth methods and tools. */
 export interface MCPServerDetail {
   name: string;
   slug: string;
@@ -41,14 +38,10 @@ export interface MCPServerDetail {
   tools?: MCPTool[];
 }
 
-/** Query parameters for listing MCP servers. */
 export interface ListMCPServersParams extends PaginationParams {
-  /** Search servers by name or description. */
   search?: string;
 }
 
-/** Query parameters for listing MCP server tools. */
 export interface ListMCPServerToolsParams extends PaginationParams {
-  /** Search tools by name or description. */
   search?: string;
 }

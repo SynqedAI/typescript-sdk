@@ -8,8 +8,12 @@ import {
   getEnv,
 } from '@/core/runtime/env';
 import { AuthConfigsEntity } from '@/entities/auth-configs/auth-configs';
+import { ConnectionsEntity } from '@/entities/connections/connections';
+import { GatewayInstancesEntity } from '@/entities/gateway-instances/gateway-instances';
+import { GatewaysEntity } from '@/entities/gateways/gateways';
 import { MCPServersEntity } from '@/entities/mcp-servers/mcp-servers';
 import { SessionsEntity } from '@/entities/sessions/sessions';
+import { TracesEntity } from '@/entities/traces/traces';
 
 export class SynqedClient {
   readonly apiKey?: string;
@@ -17,8 +21,12 @@ export class SynqedClient {
   readonly timeoutMs: number;
   readonly debug: boolean;
   readonly authConfigs: AuthConfigsEntity;
+  readonly connections: ConnectionsEntity;
+  readonly gatewayInstances: GatewayInstancesEntity;
+  readonly gateways: GatewaysEntity;
   readonly mcpServers: MCPServersEntity;
   readonly sessions: SessionsEntity;
+  readonly traces: TracesEntity;
   private readonly http: HttpClient;
 
   constructor(config: SynqedClientConfig = {}) {
@@ -36,8 +44,12 @@ export class SynqedClient {
     });
 
     this.authConfigs = new AuthConfigsEntity(this.http, this.timeoutMs);
+    this.connections = new ConnectionsEntity(this.http, this.timeoutMs);
+    this.gatewayInstances = new GatewayInstancesEntity(this.http, this.timeoutMs);
+    this.gateways = new GatewaysEntity(this.http, this.timeoutMs);
     this.mcpServers = new MCPServersEntity(this.http, this.timeoutMs);
     this.sessions = new SessionsEntity(this.http, this.timeoutMs);
+    this.traces = new TracesEntity(this.http, this.timeoutMs);
   }
 }
 
